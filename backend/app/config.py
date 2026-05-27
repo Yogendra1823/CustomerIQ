@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Project root: SegmentAI/ (parent of backend/)
@@ -10,6 +11,16 @@ _ENV_FILE = _PROJECT_ROOT / ".env"
 
 class Settings(BaseSettings):
     DATABASE_URL: str = f"sqlite+aiosqlite:///{(_PROJECT_ROOT / 'customeriq.db').as_posix()}"
+    
+    @field_validator("DATABASE_URL", mode="after")
+    @classmethod
+    def assemble_db_connection(cls, v: str) -> str:
+        if v and v.startswith("postgresql://"):
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        if v and v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql+asyncpg://", 1)
+        return v
+
     REDIS_URL: str = "redis://localhost:6379"
     SECRET_KEY: str = "dev-secret-change-in-production-use-openssl-rand-hex-32"
     ALGORITHM: str = "HS256"
